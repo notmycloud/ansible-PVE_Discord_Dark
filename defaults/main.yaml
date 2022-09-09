@@ -1,0 +1,5 @@
+theme_version: latest
+theme_name: PVEDiscordDark
+theme_repo: https://raw.githubusercontent.com/Weilbyte/{{ theme_name }}
+
+theme_basedir: /opt/{{ theme_name }}
