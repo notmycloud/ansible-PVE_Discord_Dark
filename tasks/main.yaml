@@ -5,8 +5,8 @@
     state: directory
     mode: 0755
 
-- name: "Get latest version"
-  ansible.builtin.block:
+- name: Get latest version
+  block:
     - name: Determine latest GitHub release
       delegate_to: localhost
       become: false
@@ -16,13 +16,13 @@
       register: _github_release
       until: _github_release.status == 200
       retries: 5
-
+      
     - name: Set Theme Version
       ansible.builtin.set_fact:
         theme_version: "{{ _github_release.json.tag_name | regex_replace('^v?(.*)$', '\\1') }}"
 
   when: theme_version == 'latest'
-  run_once: true
+  # run_once: true
 
 - name: Check for New/Updated {{ theme_name }} components
   ansible.builtin.get_url:
@@ -36,7 +36,7 @@
     - "{{ theme_repo }}/{{ theme_version }}/{{ theme_name }}/js/{{ theme_name }}.js"
 
 - name: "Install/Update {{ theme_name }}"
-  ansible.builtin.block:
+  block:
   - name: Check if theme is installed
     ansible.builtin.stat:
       path: /usr/share/pve-manager/css/dd_style.css
