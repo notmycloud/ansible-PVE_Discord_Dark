@@ -39,14 +39,39 @@
   block:
   - name: Check if theme is installed
     ansible.builtin.stat:
-      path: /usr/share/pve-manager/css/dd_style.css
+      path: "{{ style_path }}"
     register: theme_installed
 
   - name: uninstall old theme
-    ansible.builtin.command: "/usr/bin/env bash {{ theme_basedir }}/{{ theme_name }}.sh uninstall"
+    ansible.builtin.command:
+      cmd: "/usr/bin/env bash {{ theme_basedir }}/{{ theme_name }}.sh uninstall"
+      removes: "{{ style_path }}"
     when: theme_installed.stat.exists
 
   - name: install new theme
-    ansible.builtin.command: "/usr/bin/env bash {{ theme_basedir }}/{{ theme_name }}.sh install"
+    ansible.builtin.command:
+      cmd: "/usr/bin/env bash {{ theme_basedir }}/{{ theme_name }}.sh install"
+      creates: "{{ style_path }}"
 
   when: theme_updated.changed
+  vars:
+    style_path: "/usr/share/pve-manager/css/dd_style.css"
+
+- name: Create DPKG Hooks
+  ansible.builtin.copy:
+    dest: "/etc/apt/apt.conf.d/66-pve-theme"
+    content: |
+      DPkg::Pre-Install-Pkgs {
+          "while read -r pkg; do case $pkg in *proxmox-widget-toolkit* | *pve-manager*) touch /tmp/.pve-theme && exit 0; esac done < /dev/stdin";
+      };
+      DPkg::Post-Invoke {
+          "[ -f /tmp/.pve-theme ] && { /opt/pve-theme.sh; rm -f /tmp/.pve-theme; }; exit 0";
+      };
+    mode: '0644'
+
+- name: Create Hook Script
+  ansible.builtin.copy:
+    dest: "/opt/pve-theme.sh"
+    content: |
+      bash <(curl -s https://raw.githubusercontent.com/Weilbyte/PVEDiscordDark/master/PVEDiscordDark.sh ) install
+    mode: '0544'
